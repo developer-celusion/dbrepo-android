@@ -38,9 +38,14 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     private static final int DATABASE_VERSION = 1;
 
     private static OrmLiteRepository ormLiteRepository;
-    private static IDBChangeListener dbChangeListener;
-    private Context context;
 
+    @Deprecated
+    private static IDBChangeListener dbChangeListener;
+
+    private Context context;
+    private IDBChangeListener instanceDBChangeListener;
+
+    @Deprecated
     public static synchronized void configure(IDBChangeListener changeListener, Context context) {
         dbChangeListener = changeListener;
         OrmLiteRepository repository = getInstance(context);
@@ -49,6 +54,7 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
         }
     }
 
+    @Deprecated
     public static synchronized OrmLiteRepository getInstance(Context context) {
         if (ormLiteRepository == null) {
             ormLiteRepository = new OrmLiteRepository(context);
@@ -56,10 +62,21 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
         return ormLiteRepository;
     }
 
+    @Deprecated
     private OrmLiteRepository(Context context) {
         super(context, dbChangeListener.dbName(), null, dbChangeListener.dbversion());
         this.context = context;
         SQLiteDatabase.loadLibs(context);
+    }
+
+    public OrmLiteRepository(Context context, IDBChangeListener dbChangeListener) {
+        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbversion());
+        this.context = context;
+        this.instanceDBChangeListener = dbChangeListener;
+        SQLiteDatabase.loadLibs(context);
+        if (dbChangeListener.withOfflineSync()) {
+            this.offline();
+        }
     }
 
     public void setup() {
@@ -79,12 +96,22 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
         } catch (SQLException e) {
             e.printStackTrace();
         }*/
-        dbChangeListener.dbCreated();
+        if(dbChangeListener != null) {
+            dbChangeListener.dbCreated();
+        }
+        if(instanceDBChangeListener != null) {
+            instanceDBChangeListener.dbCreated();
+        }
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
-        dbChangeListener.dbUpgraded();
+        if(dbChangeListener != null) {
+            dbChangeListener.dbUpgraded();
+        }
+        if(instanceDBChangeListener != null) {
+            instanceDBChangeListener.dbUpgraded();
+        }
     }
 
     @Override
@@ -448,7 +475,13 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
 
     @Override
     protected String getPassword() {
-        return dbChangeListener.dbPassword();
+        if(dbChangeListener != null) {
+            return dbChangeListener.dbPassword();
+        }
+        if(instanceDBChangeListener != null) {
+            return instanceDBChangeListener.dbPassword();
+        }
+        return null;
     }
 
 
