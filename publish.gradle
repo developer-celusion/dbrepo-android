@@ -2,7 +2,7 @@ apply plugin: 'maven-publish'
 
 
 def packageName = 'com.mobiliteam'
-def libraryVersion = '0.4.2'
+def libraryVersion = '0.4.5'
 def appId = 'dbrepo'
 
 
