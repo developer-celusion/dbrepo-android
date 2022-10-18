@@ -134,8 +134,8 @@ public class SyncUtils {
      * It deletes record on Server but it's not recommended.
      * Use PATCH or PUT and do soft DELETE
      *
-     * @param idMap
-     * @throws Exception
+     * @param idMap IDMap Object
+     * @throws Exception needs to handle
      */
 
     public void enqueueAsDelete(IIDMap idMap) throws Exception {
