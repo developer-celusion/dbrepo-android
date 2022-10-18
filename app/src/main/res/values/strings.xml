@@ -1,3 +1,15 @@
 <resources>
-    <string name="app_name">Mobiliteam Library Demo</string>
+    <string name="app_name">Mobiliteam DB demo</string>
+
+    <string name="name">Name</string>
+    <string name="email">Email</string>
+    <string name="mobile">Mobile</string>
+    <string name="save_user">Save User</string>
+    <string name="update_user">Update User</string>
+    <string name="invalid_mobile_number">Invalid Mobile Number</string>
+    <string name="invalid_email">Invalid Email</string>
+    <string name="required">Required</string>
+    <string name="clear">Clear</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
 </resources>

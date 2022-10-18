@@ -1,14 +1,26 @@
 package com.mobiliteam.dbrepoexample;
 
-import android.annotation.SuppressLint;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.widget.TextView;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.mobiliteam.dbrepo.IDatabaseRepository;
-import com.mobiliteam.dbrepo.OrmLiteRepository;
 import com.mobiliteam.dbrepoexample.model.User;
 
 import java.sql.SQLException;
@@ -17,89 +29,151 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private IDatabaseRepository iDatabaseRepository;
+    private IDatabaseRepository dbRepo;
 
-    @SuppressLint("LongLogTag")
+    private RecyclerView recyclerView;
+    private UserAdapter mAdapter;
+    private List<User> mUsers;
+    public static final int REQUEST_CREATE_RECORD = 123;
+    public static final int REQUEST_UPDATE_RECORD = 456;
+    private static int selectedItemPosition = 0;
+    private MaterialToolbar toolbar;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        iDatabaseRepository = OrmLiteRepository.getInstance(ApplicationEx.getContext());
-        TextView awesomeTv = (TextView) findViewById(R.id.tv_awesome);
-        awesomeTv.setText("DB Repository");
+        recyclerView = findViewById(R.id.recyclerview);
+        toolbar = findViewById(R.id.topAppBar);
 
-        createUserTable();
-        seedData();
+        dbRepo = ApplicationEx.getInstance().getDbRepo();
 
-        Log.d("getById(Class<T> modelClass, int id)", iDatabaseRepository.getById(User.class, 45).toString());
-        Log.d("getById(Class<T> modelClass, String recordId)", iDatabaseRepository.getById(User.class, "46").toString());
-        Log.d("update(Class<T> modelClass,T item)", update());
-        //delete();
-        //deleteAll();
-        Log.d("count", "" + iDatabaseRepository.count(User.class));
-        Log.d("findAll()", findAll().toString());
+        //seedData();
+        FloatingActionButton buttonAdd = findViewById(R.id.fab);
+        buttonAdd.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, AddUserActivity.class);
+            activityResultLaunch.launch(intent);
+        });
 
-        // import java.util.concurrent.Callable;
-//        try {
-//            iDatabaseRepository.inTransaction(new Callable() {
-//                @Override
-//                public Object call() throws Exception {
-//                    iDatabaseRepository.myDao(User.class).create(user);
-//                    return null; // Sending null for Transaction Successful
-//                }
-//            });
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        setListener();
+        setupRecyclerView();
 
     }
+
+    private void setListener(){
+        toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.clear){
+                confirmDelete();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void confirmDelete(){
+        if (mUsers == null || mUsers.size() == 0){
+            Toast.makeText(this, "No data!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete all");
+        builder.setMessage("Are you sure?");
+        // Add the buttons
+        builder.setPositiveButton(R.string.ok, (DialogInterface.OnClickListener) (dialog, id) -> {
+            // User clicked OK button
+            dialog.dismiss();
+            clearData();
+        });
+        builder.setNegativeButton(R.string.cancel, (DialogInterface.OnClickListener) (dialog, id) -> {
+            // User cancelled the dialog
+            dialog.dismiss();
+        });
+
+        // Create the AlertDialog
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void clearData(){
+        dbRepo.deleteAll(User.class, mUsers);
+        mUsers.clear();
+        mAdapter.clear();
+
+    }
+
+    private final ActivityResultLauncher<Intent> activityResultLaunch = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+
+                if (result.getData() != null){
+                    int userID = result.getData().getIntExtra("UserID", 0);
+                    User user = dbRepo.getById(User.class, userID);
+                    if (result.getResultCode() == REQUEST_CREATE_RECORD) {
+                        mAdapter.addItem(user);
+                    } else if(result.getResultCode() == REQUEST_UPDATE_RECORD) {
+                        mAdapter.updateItem(user, selectedItemPosition);
+                    }
+
+                }
+                selectedItemPosition = 0;
+            });
+
+    private void setupRecyclerView(){
+        mUsers = dbRepo.getList(User.class);
+        mAdapter = new UserAdapter(mUsers, itemListener);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this,
+                LinearLayoutManager.VERTICAL, false));
+        recyclerView.setAdapter(mAdapter);
+    }
+
+    private final UserAdapter.UserItemListener itemListener = new UserAdapter.UserItemListener() {
+        @Override
+        public void onListItemClick(int position, User user) {
+            Intent intent = new Intent(MainActivity.this, AddUserActivity.class);
+            intent.putExtra("UserID", user.getId());
+            activityResultLaunch.launch(intent);
+            selectedItemPosition = position;
+        }
+
+        @Override
+        public void onDelete(int position, User user) {
+            delete(position, user);
+        }
+    };
 
     private List<User> findAll() {
         PreparedQuery<User> preparedQuery = null;
         try {
-            preparedQuery = iDatabaseRepository.getQueryBuilder(User.class)
+            preparedQuery = dbRepo.getQueryBuilder(User.class)
                     .where()
                     .eq("id", 38)
                     .prepare();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return (List<User>) iDatabaseRepository.findAll(User.class, preparedQuery);
+        return (List<User>) dbRepo.findAll(User.class, preparedQuery);
     }
 
-    private String update() {
-        User user = iDatabaseRepository.getById(User.class, 49);
-        user.setEmail("updated" + user.getId() + "@abc.com");
-        iDatabaseRepository.update(User.class, user);
-        return iDatabaseRepository.getById(User.class, 49).toString();
+
+    private void delete(int position, User user) {
+        dbRepo.delete(User.class, user);
+        mUsers.remove(position);
+        mAdapter.notifyItemRemoved(position);
+        mAdapter.notifyItemRangeChanged(position, mUsers.size());
     }
 
-    private void delete() {
-        User user = iDatabaseRepository.getById(User.class, 91);
-        iDatabaseRepository.delete(User.class, user);
-    }
-
-    private void deleteAll() {
-        List<User> users = (List<User>) iDatabaseRepository.getAll(User.class);
-        iDatabaseRepository.deleteAll(User.class, users);
-    }
 
     private void seedData() {
         List<User> users = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             User user = new User();
-            user.setId(i);
-            user.setEmail("example_" + i + ".com");
+            user.setName("User " + i);
+            user.setEmail("example_" + i + "@test.com");
             user.setMobile("900000000" + i);
-            user.setUserName("Username_" + i);
             users.add(user);
             //iDatabaseRepository.add(User.class, user);
         }
-        iDatabaseRepository.add(User.class, users);
-    }
-
-    private void createUserTable() {
-        iDatabaseRepository.createTable(User.class);
+        dbRepo.add(User.class, users);
     }
 
 }

@@ -10,7 +10,7 @@ public interface IDBChangeListener {
 
     void dbUpgraded();
 
-    int dbversion();
+    int dbVersion();
 
     String dbName();
 

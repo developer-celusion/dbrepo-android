@@ -3,6 +3,7 @@ package com.mobiliteam.dbrepo.offlinesync;
 import android.content.Context;
 
 import com.j256.ormlite.stmt.PreparedQuery;
+import com.mobiliteam.dbrepo.IDBChangeListener;
 import com.mobiliteam.dbrepo.IDatabaseRepository;
 import com.mobiliteam.dbrepo.OrmLiteRepository;
 
@@ -17,8 +18,8 @@ import java.util.List;
 public class SyncUtils {
 
     private static SyncUtils instance;
-    private Context context;
-    private IDatabaseRepository databaseRepository;
+    private final Context context;
+    private final IDatabaseRepository databaseRepository;
 
     private final static String COL_LOCAL_ID = "localid";
     private final static String COL_ENTITY = "entity";
@@ -35,9 +36,22 @@ public class SyncUtils {
         init();
     }
 
+    private SyncUtils(Context context, OrmLiteRepository repository) {
+        this.context = context;
+        this.databaseRepository = repository;
+        init();
+    }
+
     public static synchronized SyncUtils getInstance(Context context) {
         if (instance == null) {
             instance = new SyncUtils(context);
+        }
+        return instance;
+    }
+
+    public static synchronized SyncUtils getInstance(Context context, OrmLiteRepository repository) {
+        if (instance == null) {
+            instance = new SyncUtils(context, repository);
         }
         return instance;
     }
