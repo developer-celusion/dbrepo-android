@@ -2,11 +2,12 @@ package com.mobiliteam.dbrepo;
 
 import android.content.Context;
 import android.database.Cursor;
-//import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
+
 import net.sqlcipher.database.SQLiteDatabase;
 
+import com.getkeepsafe.relinker.ReLinker;
 import com.j256.ormlite.android.AndroidDatabaseResults;
-//import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.cipher.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.CloseableIterator;
 import com.j256.ormlite.dao.Dao;
@@ -42,7 +43,7 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     @Deprecated
     private static IDBChangeListener dbChangeListener;
 
-    private Context context;
+    private final Context context;
     private IDBChangeListener instanceDBChangeListener;
 
     @Deprecated
@@ -63,19 +64,38 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     }
 
     @Deprecated
-    private OrmLiteRepository(Context context) {
-        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbversion());
+    private OrmLiteRepository(final Context context) {
+        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion());
         this.context = context;
-        SQLiteDatabase.loadLibs(context);
+        //SQLiteDatabase.loadLibs(context);
+        SQLiteDatabase.loadLibs(context, new SQLiteDatabase.LibraryLoader() {
+            @Override
+            public void loadLibraries(String... libNames) {
+                for (String library : libNames) {
+                    ReLinker.loadLibrary(context, library);
+                }
+
+            }
+        });
     }
 
-    public OrmLiteRepository(Context context, IDBChangeListener dbChangeListener) {
-        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbversion());
+    public OrmLiteRepository(final Context context, IDBChangeListener dbChangeListener) {
+        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion());
         this.context = context;
         this.instanceDBChangeListener = dbChangeListener;
-        SQLiteDatabase.loadLibs(context);
+
+        SQLiteDatabase.loadLibs(context, new SQLiteDatabase.LibraryLoader() {
+            @Override
+            public void loadLibraries(String... libNames) {
+                for (String library : libNames) {
+                    ReLinker.loadLibrary(context, library);
+                }
+
+            }
+        });
+        //SQLiteDatabase.loadLibs(context);
         if (dbChangeListener.withOfflineSync()) {
-            this.offline();
+            offline(this);
         }
     }
 
@@ -87,15 +107,13 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
         SyncUtils.getInstance(context).setup();
     }
 
+    public void offline(OrmLiteRepository repository) {
+        SyncUtils.getInstance(context, repository).setup();
+    }
+
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
 
-        /*try {
-            TableUtils.createTable(getDao(User.class));
-            //TableUtils.createTable(connectionSource, User.class);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }*/
         if(dbChangeListener != null) {
             dbChangeListener.dbCreated();
         }
@@ -299,9 +317,7 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
                     jsonArray.put(jsonObject);
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
+        } catch (SQLException | JSONException e) {
             e.printStackTrace();
         }
         return jsonArray;
@@ -406,7 +422,6 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     @Override
     public <T> void createTable(Class<T> modelClass) {
         try {
-            //TableUtils.createTable(getDao(modelClass));
             TableUtils.createTableIfNotExists(getConnectionSource(), modelClass);
         } catch (SQLException e) {
             e.printStackTrace();

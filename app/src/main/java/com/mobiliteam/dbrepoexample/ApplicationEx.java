@@ -5,7 +5,9 @@ import android.content.Context;
 import android.util.Log;
 
 import com.mobiliteam.dbrepo.IDBChangeListener;
+import com.mobiliteam.dbrepo.IDatabaseRepository;
 import com.mobiliteam.dbrepo.OrmLiteRepository;
+import com.mobiliteam.dbrepoexample.model.User;
 
 /**
  * Created by swapnilnandgave on 16/04/18.
@@ -13,27 +15,37 @@ import com.mobiliteam.dbrepo.OrmLiteRepository;
 
 public class ApplicationEx extends Application {
 
-    private static Context context;
+    private IDatabaseRepository dbRepo;
+
+    private static ApplicationEx INSTANCE;
+
+    public static ApplicationEx getInstance(){
+        return INSTANCE;
+    }
+
+    public IDatabaseRepository getDbRepo() {
+        return dbRepo;
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        context = getApplicationContext();
-        OrmLiteRepository.configure(dbChangeListener, this);
+        INSTANCE = this;
+        dbRepo = new OrmLiteRepository(this, dbChangeListener);
+        createUserTable();
     }
 
 
-    public static Context getContext() {
-        return context;
+    public Context getContext() {
+        return getApplicationContext();
     }
 
     @Override
     public void onTerminate() {
-        context = null;
         super.onTerminate();
     }
 
-    private IDBChangeListener dbChangeListener = new IDBChangeListener() {
+    private final IDBChangeListener dbChangeListener = new IDBChangeListener() {
         @Override
         public void dbCreated() {
             Log.i(this.getClass().getSimpleName(), "DB CREATED");
@@ -45,13 +57,13 @@ public class ApplicationEx extends Application {
         }
 
         @Override
-        public int dbversion() {
+        public int dbVersion() {
             return 1;
         }
 
         @Override
         public String dbName() {
-            return "Mobiliteam.db";
+            return "mobiliteam_demo.db";
         }
 
         @Override
@@ -61,8 +73,12 @@ public class ApplicationEx extends Application {
 
         @Override
         public String dbPassword() {
-            return null;
+            return "smaplePassword";
         }
     };
+
+    private void createUserTable() {
+        dbRepo.createTable(User.class);
+    }
 
 }

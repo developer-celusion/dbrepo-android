@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/item_layout"
+    android:background="?attr/selectableItemBackground"
+    android:padding="16dp">
+
+    <RelativeLayout
+        android:id="@+id/layout_record_id"
+        android:layout_width="60dp"
+        android:layout_height="60dp">
+
+        <TextView
+            android:id="@+id/record_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textSize="24sp"
+            tools:text="12"
+            android:textAppearance="@style/TextAppearance.Material3.HeadlineLarge" />
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_marginStart="10dp"
+        android:layout_toEndOf="@id/layout_record_id"
+        android:layout_width="match_parent"
+        android:layout_marginEnd="60dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/text_name"
+            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+            android:layout_width="wrap_content"
+            tools:text="Heading"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/text_mobile"
+            tools:text="781209380"
+            android:layout_width="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:layout_height="wrap_content"/>
+
+
+        <TextView
+            android:id="@+id/text_email"
+            tools:text="test@email.com"
+            android:layout_width="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:layout_height="wrap_content"/>
+
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/button_delete"
+        android:layout_alignParentEnd="true"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_centerVertical="true"
+        app:tint="#808080"
+        android:src="@drawable/ic_baseline_delete_outline_24"
+        tools:ignore="ContentDescription" />
+
+</RelativeLayout>

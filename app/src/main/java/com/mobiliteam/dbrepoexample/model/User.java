@@ -9,14 +9,11 @@ import com.j256.ormlite.table.DatabaseTable;
 @DatabaseTable
 public class User {
 
-    @DatabaseField(id = true)
+    @DatabaseField(generatedId = true)
     private int id;
 
     @DatabaseField
     private String name;
-
-    @DatabaseField
-    private String userName;
 
     @DatabaseField
     private String email;
@@ -27,9 +24,8 @@ public class User {
     public User() {
     }
 
-    public User(String name, String userName, String email, String mobile) {
+    public User(String name, String email, String mobile) {
         this.name = name;
-        this.userName = userName;
         this.email = email;
         this.mobile = mobile;
     }
@@ -48,14 +44,6 @@ public class User {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
     }
 
     public String getEmail() {
@@ -79,7 +67,6 @@ public class User {
         return "User{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", userName='" + userName + '\'' +
                 ", email='" + email + '\'' +
                 ", mobile='" + mobile + '\'' +
                 '}';
