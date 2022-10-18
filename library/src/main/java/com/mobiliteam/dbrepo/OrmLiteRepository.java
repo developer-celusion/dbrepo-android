@@ -449,8 +449,8 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     /**
      * Run database operation in Transaction
      *
-     * @param callable
-     * @throws Exception
+     * @param callable parameter
+     * @throws Exception needs to be handled
      */
 
     @Override
@@ -461,10 +461,9 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     /**
      * Use this only in inTransaction Method
      *
-     * @param modelClass
-     * @param <T>
-     * @return
-     * @throws Exception
+     * @param modelClass DB Entity class
+     * @return DAO object
+     * @throws Exception needs to be handled
      */
     public <T> Dao<T, ?> myDao(Class<T> modelClass) throws Exception {
         return getDao(modelClass);
