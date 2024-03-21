@@ -66,17 +66,17 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     @Deprecated
     private OrmLiteRepository(final Context context) {
         super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion());
+        System.loadLibrary("sqlcipher");
         this.context = context;
-        //SQLiteDatabase.loadLibs(context);
-        SQLiteDatabase.loadLibs(context, new SQLiteDatabase.LibraryLoader() {
-            @Override
-            public void loadLibraries(String... libNames) {
-                for (String library : libNames) {
-                    ReLinker.loadLibrary(context, library);
-                }
 
-            }
-        });
+        //SQLiteDatabase.loadLibs(context);
+
+//        SQLiteDatabase.loadLibs(context, libNames -> {
+//            for (String library : libNames) {
+//                ReLinker.loadLibrary(context, library);
+//            }
+//
+//        });
     }
 
     public OrmLiteRepository(final Context context, IDBChangeListener dbChangeListener) {
@@ -84,15 +84,16 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
         this.context = context;
         this.instanceDBChangeListener = dbChangeListener;
 
-        SQLiteDatabase.loadLibs(context, new SQLiteDatabase.LibraryLoader() {
-            @Override
-            public void loadLibraries(String... libNames) {
-                for (String library : libNames) {
-                    ReLinker.loadLibrary(context, library);
-                }
-
-            }
-        });
+        System.loadLibrary("sqlcipher");
+//        SQLiteDatabase.loadLibs(context, new SQLiteDatabase.LibraryLoader() {
+//            @Override
+//            public void loadLibraries(String... libNames) {
+//                for (String library : libNames) {
+//                    ReLinker.loadLibrary(context, library);
+//                }
+//
+//            }
+//        });
         //SQLiteDatabase.loadLibs(context);
         if (dbChangeListener.withOfflineSync()) {
             offline(this);

@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 51
-        versionName "0.5.1"
+        versionCode 52
+        versionName "0.5.2"
     }
 
 }
@@ -16,7 +16,7 @@ android {
 dependencies {
 
     api 'com.j256.ormlite:ormlite-android:5.1'
-    api 'net.zetetic:android-database-sqlcipher:4.0.1'
+    api 'net.zetetic:android-database-sqlcipher:4.5.4'
     api 'com.j256.ormlite.cipher:ormlite-sqlcipher:1.4'
     api 'com.getkeepsafe.relinker:relinker:1.4.4'
 
