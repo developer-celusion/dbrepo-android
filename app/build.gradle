@@ -8,8 +8,8 @@ android {
         applicationId "com.mobiliteam.libraryexample"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 51
-        versionName "0.5.1"
+        versionCode 52
+        versionName "0.5.2"
     }
     buildTypes {
         release {
@@ -29,6 +29,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation project(':library')
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
 
 }
