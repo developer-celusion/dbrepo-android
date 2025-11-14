@@ -2,24 +2,26 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.jfrog.artifactory'
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion 34
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 33
-        versionCode 52
-        versionName "0.5.2"
+        targetSdkVersion 34
     }
+    namespace 'com.mobiliteam.dbrepo'
 
 }
 
 dependencies {
 
-    api 'com.j256.ormlite:ormlite-android:5.1'
-    api 'net.zetetic:android-database-sqlcipher:4.5.4'
-    api 'com.j256.ormlite.cipher:ormlite-sqlcipher:1.4'
-    api 'com.getkeepsafe.relinker:relinker:1.4.4'
-
+    api  "net.zetetic:sqlcipher-android:4.11.0"
+    implementation platform("org.jetbrains.kotlin:kotlin-bom:1.8.10")
+    api 'com.j256.ormlite:ormlite-android:6.1'
+    //api 'com.github.arteme:ormlite-sqlcipher:d349b00f1f'
+    api ('com.github.arteme:ormlite-sqlcipher:d349b00f1f') {
+        exclude group: 'com.j256.ormlite', module: 'ormlite-core'
+    }
+    api 'androidx.sqlite:sqlite:2.4.0'
 }
 
 apply from: '../publish.gradle'
