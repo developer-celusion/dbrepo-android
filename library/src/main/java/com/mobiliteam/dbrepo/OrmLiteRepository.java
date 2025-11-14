@@ -4,9 +4,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.util.Log;
 
-import net.sqlcipher.database.SQLiteDatabase;
+import  net.zetetic.database.sqlcipher.SQLiteDatabase;
+//import net.sqlcipher.database.SQLiteDatabase;
 
-import com.getkeepsafe.relinker.ReLinker;
+//import com.getkeepsafe.relinker.ReLinker;
 import com.j256.ormlite.android.AndroidDatabaseResults;
 import com.j256.ormlite.cipher.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.CloseableIterator;
@@ -65,7 +66,7 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
 
     @Deprecated
     private OrmLiteRepository(final Context context) {
-        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion());
+        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion(), dbChangeListener.dbPassword());
         System.loadLibrary("sqlcipher");
         this.context = context;
 
@@ -80,7 +81,7 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
     }
 
     public OrmLiteRepository(final Context context, IDBChangeListener dbChangeListener) {
-        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion());
+        super(context, dbChangeListener.dbName(), null, dbChangeListener.dbVersion(), dbChangeListener.dbPassword());
         this.context = context;
         this.instanceDBChangeListener = dbChangeListener;
 
@@ -488,7 +489,7 @@ public class OrmLiteRepository extends OrmLiteSqliteOpenHelper implements IDatab
         super.close();
     }
 
-    @Override
+    //@Override
     protected String getPassword() {
         if(dbChangeListener != null) {
             return dbChangeListener.dbPassword();
