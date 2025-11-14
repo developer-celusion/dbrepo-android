@@ -1,32 +1,63 @@
 apply plugin: 'maven-publish'
 
+// Modernized publish.gradle for AGP 8.13 / Gradle 8.13
+// - Uses Provider APIs (layout.buildDirectory, tasks.named, etc.)
+// - Includes Kotlin sources if present
+// - Guards configurations and task lookups to avoid deprecation warnings
+// - Sets Javadoc to failOnError = false and skips javadoc artifact on JitPack
 
-def packageName = 'com.mobiliteam'
-def libraryVersion = '0.5.3'
-def appId = 'dbrepo'
+def packageName   = 'com.mobiliteam'
+def libraryVersion = '0.5.5'
+def appId         = 'dbrepo'
 
+// detect JitPack environment so we can skip fragile tasks there if desired
+def isJitpack = System.getenv('JITPACK') != null
 
-task androidJavadocs(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    android.libraryVariants.all { variant ->
-        if (variant.name == 'release') {
-            owner.classpath += variant.javaCompile.classpath
+/* ---------------- Javadoc / sources ---------------- */
+tasks.register('androidJavadocs', Javadoc) {
+    // be lenient so Javadoc problems don't fail the whole publish
+    failOnError = false
+
+    // include Java + Kotlin sources (if Kotlin plugin present)
+    def javaDirs = android.sourceSets.main.java.srcDirs
+    def kotlinDirs = []
+    try {
+        kotlinDirs = android.sourceSets.main.kotlin.srcDirs
+    } catch (ignored) {}
+    source = files(javaDirs + kotlinDirs)
+
+    // Android boot classpath
+    classpath += files(android.getBootClasspath().join(File.pathSeparator))
+
+    // Add the compile classpath for the release variant (provider-compatible)
+    android.libraryVariants.matching { it.name == 'release' }.all { variant ->
+        if (variant.respondsTo('javaCompileProvider')) {
+            classpath += variant.javaCompileProvider.get().classpath
+        } else if (variant.respondsTo('javaCompile')) {
+            classpath += variant.javaCompile.classpath
         }
     }
-    exclude '**/R.html', '**/R.*.html', '**/index.html'
+
+    options.encoding = 'UTF-8'
 }
 
-task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-    archiveClassifier  = 'javadoc'
-    from androidJavadocs.destinationDir
+// Javadoc jar (registered but we'll conditionally add to publications)
+tasks.register('androidJavadocsJar', Jar) {
+    dependsOn tasks.named('androidJavadocs')
+    archiveClassifier.set('javadoc')
+    from tasks.named('androidJavadocs').get().destinationDir
 }
 
-task androidSourcesJar(type: Jar) {
-    archiveClassifier  = 'sources'
-    from android.sourceSets.main.java.srcDirs
+// Sources jar
+tasks.register('androidSourcesJar', Jar) {
+    archiveClassifier.set('sources')
+    def javaDirs = android.sourceSets.main.java.srcDirs
+    def kotlinDirs = []
+    try { kotlinDirs = android.sourceSets.main.kotlin.srcDirs } catch (ignored) {}
+    from files(javaDirs + kotlinDirs)
 }
 
+/* --------- Publishing configuration (safe guards) ---------- */
 project.afterEvaluate {
     publishing {
         publications {
@@ -35,46 +66,66 @@ project.afterEvaluate {
                 artifactId appId
                 version = libraryVersion
 
-                artifact bundleReleaseAar
-                artifact androidJavadocsJar
-                artifact androidSourcesJar
+                // Prefer using the produced AAR from the bundle task if present
+                def bundleTask = tasks.matching { it.name == 'bundleReleaseAar' }.firstOrNull()
+                if (bundleTask != null) {
+                    // if bundle task exists, use its archiveFile provider
+                    artifact(bundleTask.archiveFile)
+                } else {
+                    // fallback to layout.buildDirectory (provider-friendly)
+                    artifact(layout.buildDirectory.file("outputs/aar/${project.name}-release.aar"))
+                }
 
+                // Add sources jar
+                artifact(tasks.named('androidSourcesJar').flatMap { it.archiveFile })
+
+                // Add javadoc jar unless we are on JitPack (optional, prevents fragile Javadoc failures)
+                if (!isJitpack) {
+                    artifact(tasks.named('androidJavadocsJar').flatMap { it.archiveFile })
+                }
+
+                // Build POM dependencies safely:
                 pom.withXml {
-                    final dependenciesNode = asNode().appendNode('dependencies')
+                    def dependenciesNode = asNode().appendNode('dependencies')
 
-                    ext.addDependency = { Dependency dep, String scope ->
-                        if (dep.group == null || dep.version == null || dep.name == null || dep.name == "unspecified")
-                            return // ignore invalid dependencies
-
-                        final dependencyNode = dependenciesNode.appendNode('dependency')
+                    def addDependency = { dep, String scope ->
+                        if (!dep || dep.group == null || dep.version == null || dep.name == null || dep.name == "unspecified") return
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
                         dependencyNode.appendNode('groupId', dep.group)
                         dependencyNode.appendNode('artifactId', dep.name)
                         dependencyNode.appendNode('version', dep.version)
                         dependencyNode.appendNode('scope', scope)
 
-                        if (!dep.transitive) {
-                            // If this dependency is transitive, we should force exclude all its dependencies them from the POM
-                            final exclusionNode = dependencyNode.appendNode('exclusions').appendNode('exclusion')
-                            exclusionNode.appendNode('groupId', '*')
-                            exclusionNode.appendNode('artifactId', '*')
-                        } else if (!dep.properties.excludeRules.empty) {
-                            // Otherwise add specified exclude rules
-                            final exclusionNode = dependencyNode.appendNode('exclusions').appendNode('exclusion')
-                            dep.properties.excludeRules.each { ExcludeRule rule ->
-                                exclusionNode.appendNode('groupId', rule.group ?: '*')
-                                exclusionNode.appendNode('artifactId', rule.module ?: '*')
+                        // transitive/exclude rules (guarded)
+                        try {
+                            if (!dep.transitive) {
+                                def exclusionNode = dependencyNode.appendNode('exclusions').appendNode('exclusion')
+                                exclusionNode.appendNode('groupId', '*')
+                                exclusionNode.appendNode('artifactId', '*')
+                            } else if (dep.properties?.excludeRules) {
+                                dep.properties.excludeRules.each { ExcludeRule rule ->
+                                    def exclusionNode = dependencyNode.appendNode('exclusions').appendNode('exclusion')
+                                    exclusionNode.appendNode('groupId', rule.group ?: '*')
+                                    exclusionNode.appendNode('artifactId', rule.module ?: '*')
+                                }
+                            }
+                        } catch (ignored) {}
+                    }
+
+                    // iterate declared configurations if present (provider-friendly check)
+                    ['api', 'implementation', 'compile', 'compileOnly', 'runtimeOnly'].each { confName ->
+                        if (configurations.names.contains(confName)) {
+                            configurations.named(confName).get().dependencies.each { dep ->
+                                addDependency(dep, (confName == 'api' || confName == 'compile') ? 'compile' : 'runtime')
                             }
                         }
                     }
-
-                    // List all "compile" dependencies (for old Gradle)
-                    //configurations.compile.getDependencies().each { dep -> addDependency(dep, "compile") }
-                    // List all "api" dependencies (for new Gradle) as "compile" dependencies
-                    configurations.api.getDependencies().each { dep -> addDependency(dep, "compile") }
-                    // List all "implementation" dependencies (for new Gradle) as "runtime" dependencies
-                    configurations.implementation.getDependencies().each { dep -> addDependency(dep, "runtime") }
                 }
             }
         }
     }
 }
+
+// Helpful task: verify artifacts produced locally
+// Run: ./gradlew assembleRelease publishToMavenLocal
+// Inspect generated files in ~/.m2/repository/${packageName.replace('.', '/')}/${appId}/${libraryVersion}/
