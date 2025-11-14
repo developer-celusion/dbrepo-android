@@ -6,14 +6,17 @@ apply plugin: 'maven-publish'
 // - Guards configurations and task lookups to avoid deprecation warnings
 // - Sets Javadoc to failOnError = false and skips javadoc artifact on JitPack
 
+// Adjust these to your coordinates
 def packageName   = 'com.mobiliteam'
-def libraryVersion = '0.5.5'
+def libraryVersion = '0.5.6'
 def appId         = 'dbrepo'
 
 // detect JitPack environment so we can skip fragile tasks there if desired
+// JitPack sets the JITPACK env var when running builds
 def isJitpack = System.getenv('JITPACK') != null
 
 /* ---------------- Javadoc / sources ---------------- */
+// Register Javadoc task (lenient)
 tasks.register('androidJavadocs', Javadoc) {
     // be lenient so Javadoc problems don't fail the whole publish
     failOnError = false
@@ -30,6 +33,7 @@ tasks.register('androidJavadocs', Javadoc) {
     classpath += files(android.getBootClasspath().join(File.pathSeparator))
 
     // Add the compile classpath for the release variant (provider-compatible)
+    // Use variant provider API if available; otherwise fallback to older property
     android.libraryVariants.matching { it.name == 'release' }.all { variant ->
         if (variant.respondsTo('javaCompileProvider')) {
             classpath += variant.javaCompileProvider.get().classpath
@@ -66,13 +70,18 @@ project.afterEvaluate {
                 artifactId appId
                 version = libraryVersion
 
-                // Prefer using the produced AAR from the bundle task if present
-                def bundleTask = tasks.matching { it.name == 'bundleReleaseAar' }.firstOrNull()
+                // --- AAR artifact: prefer bundle task, else fallback to build dir (provider-friendly) ---
+                def bundleTask = tasks.findByName('bundleReleaseAar')
                 if (bundleTask != null) {
-                    // if bundle task exists, use its archiveFile provider
-                    artifact(bundleTask.archiveFile)
+                    // try to use the task's archiveFile provider (works for modern bundle tasks)
+                    try {
+                        artifact(bundleTask.archiveFile)
+                    } catch (Throwable ignored) {
+                        // if the task doesn't expose archiveFile then fallback
+                        artifact(layout.buildDirectory.file("outputs/aar/${project.name}-release.aar"))
+                    }
                 } else {
-                    // fallback to layout.buildDirectory (provider-friendly)
+                    // fallback to layout.buildDirectory provider path
                     artifact(layout.buildDirectory.file("outputs/aar/${project.name}-release.aar"))
                 }
 
@@ -126,6 +135,7 @@ project.afterEvaluate {
     }
 }
 
-// Helpful task: verify artifacts produced locally
-// Run: ./gradlew assembleRelease publishToMavenLocal
-// Inspect generated files in ~/.m2/repository/${packageName.replace('.', '/')}/${appId}/${libraryVersion}/
+// Helpful notes for local testing:
+// - Run: ./gradlew :library:assembleRelease :library:publishToMavenLocal --no-daemon
+// - Check generated files in ~/.m2/repository/${packageName.replace('.', '/')}/${appId}/${libraryVersion}/
+// - If using JitPack, add a jitpack.yml with `jdk: - openjdk17` to ensure Java 17 is used
