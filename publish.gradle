@@ -8,7 +8,7 @@ apply plugin: 'maven-publish'
 
 // Adjust these to your coordinates
 def packageName   = 'com.mobiliteam'
-def libraryVersion = '0.5.6'
+def libraryVersion = '0.5.7'
 def appId         = 'dbrepo'
 
 // detect JitPack environment so we can skip fragile tasks there if desired
