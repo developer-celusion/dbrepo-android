@@ -1,6 +1,0 @@
-jdk:
-  - openjdk17
-install:
-  - true
-build:
-  - ./gradlew :library:assembleRelease :library:publishToMavenLocal --no-daemon
