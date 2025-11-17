@@ -1,6 +1,9 @@
 apply plugin: 'com.android.library'
 apply plugin: 'com.jfrog.artifactory'
 
+// add this explicitly so publishToMavenLocal is guaranteed to be created
+apply plugin: 'maven-publish'
+
 android {
     compileSdkVersion 34
 
@@ -25,5 +28,3 @@ dependencies {
 }
 
 apply from: '../publish.gradle'
-
-
